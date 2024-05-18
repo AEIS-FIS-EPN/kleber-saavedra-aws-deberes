@@ -97,19 +97,19 @@ data "aws_ami" "ubuntu_ami" {
 }
 
 // Instance EC2
-resource "aws_instance" "ubuntu-aeis-instance" {
+resource "aws_instance" "ubuntu-company-instance" {
   ami = data.aws_ami.ubuntu_ami.id
   instance_type = "t2.macro"
   subnet_id = aws_subnet.public_subnet.id
 }
 
-resource "aws_network_interface" "aeis_network_interface" {
+resource "aws_network_interface" "company_network_interface" {
   subnet_id = aws_subnet.public_subnet.id
   private_ips = ["10.0.1.8"]
   security_groups = [aws_security_group.web_server_sg.id]
 }
 
-resource "aws_eip" "aeis_ip_elastica" {
-  associate_with_private_ip = tolist(aws_network_interface.aeis_network_interface.private_ips)[0]
-  network_interface = aws_network_interface.aeis_network_interface.id
+resource "aws_eip" "company_ip_elastica" {
+  associate_with_private_ip = tolist(aws_network_interface.company_network_interface.private_ips)[0]
+  network_interface = aws_network_interface.company_network_interface.id
 }
