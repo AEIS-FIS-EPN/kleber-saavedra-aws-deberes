@@ -39,3 +39,77 @@ resource "aws_route_table_association" "company_public_association" {
   route_table_id = aws_route_table.company_public_subnet_route_table.id
   subnet_id = aws_subnet.public_subnet.id
 }
+
+resource "aws_security_group" "web_server_sg" {
+  vpc_id = aws_vpc.company_vpc.id
+
+  ingress {
+    description = "Allow HTTP traffic from internet"
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow HTTPS traffic from internet"
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all traffic to internet"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "company security group"
+  }
+} 
+
+// bloque de datos se usa cuando se quiere agregar informacion especifica de un recurso
+// vamos a intentar definir una AMI
+// plantilla ubuntu: ubuntu focal 20.04
+// hay que hacer un estudio de lo que necesitamos en una imagen e incluso esto afectaria el costo
+// https://releases.ubuntu.com/focal/
+data "aws_ami" "ubuntu_ami" {
+  most_recent = "true"
+  filter {
+    name = "name"   // aqui va el nombre del sistema operativo
+    # values = ["ubuntu/images/pvm-ssd/ubuntu-focal-20.04-amd64-server-*"]  # esta seria la forma de implemementar la busqueda para Azure porque Azure usa vp, al parecer
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  //https://documentation.ubuntu.com/aws/en/latest/aws-how-to/instances/find-ubuntu-images/
+  // esta metadata te sirve sobre todo cuando quieres hacer migraciones para poder tener las mismas caracteristicas en otro servidor
+  // a diferencia de cuando se hace directamente desde la interfaz de usuario porque se pierde mucha informacion sobre las instancias, muchas caracteristicas
+  owners = ["099720109477"]
+}
+
+// Instance EC2
+resource "aws_instance" "ubuntu-aeis-instance" {
+  ami = data.aws_ami.ubuntu_ami.id
+  instance_type = "t2.macro"
+  subnet_id = aws_subnet.public_subnet.id
+}
+
+resource "aws_network_interface" "aeis_network_interface" {
+  subnet_id = aws_subnet.public_subnet.id
+  private_ips = ["10.0.1.8"]
+  security_groups = [aws_security_group.web_server_sg.id]
+}
+
+resource "aws_eip" "aeis_ip_elastica" {
+  associate_with_private_ip = tolist(aws_network_interface.aeis_network_interface.private_ips)[0]
+  network_interface = aws_network_interface.aeis_network_interface.id
+}
