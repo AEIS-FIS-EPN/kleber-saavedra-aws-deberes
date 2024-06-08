@@ -19,3 +19,6 @@ terraform.lock.hcl
 
 # Ignore CLI configuration files
 terraform.rc
+
+venv
+venv/

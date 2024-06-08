@@ -54,7 +54,7 @@ resource "aws_route_table" "company_public_subnet_route_table" {
 resource "aws_route_table_association" "company_public_association" {
   route_table_id = aws_route_table.company_public_subnet_route_table.id
   subnet_id      = aws_subnet.public_subnet.id
-  
+
   # tags = {
   #   Name = "company public subnet route table association"
   # }
@@ -124,7 +124,16 @@ data "aws_ami" "ubuntu_ami" {
 resource "aws_instance" "ubuntu-company-instance" {
   ami           = data.aws_ami.ubuntu_ami.id
   instance_type = "t2.micro"
-  subnet_id     = aws_subnet.public_subnet.id
+  network_interface {
+    network_interface_id = aws_network_interface.company_network_interface.id
+    device_index         = 0
+  }
+  user_data = <<-EOF
+              #!bin/bash
+              sudo apt update -y
+              sudo apt install nginx -y
+              sudo systemctl start nginx
+              EOF
   tags = {
     Name = "Ubuntu company instance"
   }
@@ -142,7 +151,18 @@ resource "aws_network_interface" "company_network_interface" {
 resource "aws_eip" "company_ip_elastica" {
   associate_with_private_ip = tolist(aws_network_interface.company_network_interface.private_ips)[0]
   network_interface         = aws_network_interface.company_network_interface.id
+  instance = aws_instance.ubuntu-company-instance.id
   tags = {
     Name = "company elastic ip"
   }
 }
+
+# output "company_public_ip" {
+#   value = aws_eip.company_ip_elastica.public_ip
+#   vpc = true
+#   network_interface = aws_network_interface.company_network_interface.id
+# }
+
+# output "public_company_ip" {
+#   value = aws_eip.company_ip_elastica.public_ip
+# }
