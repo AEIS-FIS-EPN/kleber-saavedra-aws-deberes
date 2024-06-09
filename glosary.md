@@ -1,0 +1,1 @@
+Naming variables: https://www.devopsschool.com/blog/terraform-variable-naming-convention/
